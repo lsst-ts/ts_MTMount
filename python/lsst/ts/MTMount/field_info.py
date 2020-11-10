@@ -260,6 +260,9 @@ class IntFieldInfo(BaseFieldInfo):
             raise ValueError("Blank string and empty_is_default False")
         return int(strval)
 
+    def str_from_value(self, value):
+        return f"{int(value)}"
+
 
 class StrFieldInfo(BaseFieldInfo):
     """A str field.

@@ -26,7 +26,7 @@ EUI_COMMAND_PORT = 60005
 HHD_COMMAND_PORT = 40005
 # CSC TCP/IP default configuration
 # Update this when Tekniker adds a dedicated pair of ports for the CSC.
-CSC_COMMAND_PORT = EUI_COMMAND_PORT
+CSC_COMMAND_PORT = HHD_COMMAND_PORT
 
 # We probably don't need this, because -1 means "all drives".
 MIRROR_COVER_DRIVES = (0, 1, 2, 3)

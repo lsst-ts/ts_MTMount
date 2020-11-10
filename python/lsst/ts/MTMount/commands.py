@@ -73,6 +73,8 @@ __all__ = [
     "TopEndChillerPower",
     "TopEndChillerResetAlarm",
     "TopEndChillerTrackAmbient",
+    "AskForCommands",
+    "SafetyReset",
     "Commands",
     "CommandDict",
     "parse_command",
@@ -209,6 +211,19 @@ Other elevation and azimuth axis commands:
 * <AXIS>_AXIS_RESET_ALARM
 """
 
+class AskForCommand(Command):
+    field_infos = make_command_field_infos(
+        enums.CommandCode.ASK_FOR_COMMAND,
+        (
+            field_info.IntFieldInfo(
+                name="commander", doc="Which commander to request ownership for? 2 = EUI, 3 = HDD", default=2
+            ),
+        ),
+    )
+    print(field_infos)
+
+class SafetyReset(Command):
+    field_infos = make_command_field_infos(enums.CommandCode.SAFETY_RESET,)
 
 class AzimuthAxisDriveEnable(Command):
     field_infos = make_command_field_infos(
