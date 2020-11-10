@@ -361,6 +361,7 @@ class MTMountCsc(salobj.ConfigurableCsc):
         self.enabled_state = enums.EnabledState.ENABLING
         try:
             enable_commands = [
+                commands.AskForCommand(commander=3),
                 # commands.TopEndChillerResetAlarm(),
                 # commands.MainPowerSupplyResetAlarm(),
                 # commands.MirrorCoverLocksResetAlarm(),
@@ -375,7 +376,7 @@ class MTMountCsc(salobj.ConfigurableCsc):
                 # commands.AzimuthAxisPower(on=True),
                 # commands.ElevationAxisPower(on=True),
                 commands.CameraCableWrapPower(on=True),
-                commands.CameraCableWrapEnableTracking(on=True),
+                # commands.CameraCableWrapEnableTracking(on=True),
             ]
             await self.send_commands(*enable_commands)
             self.enabled_state = enums.EnabledState.ENABLED
@@ -411,6 +412,7 @@ class MTMountCsc(salobj.ConfigurableCsc):
                     # commands.AzimuthAxisPower(on=False),
                     # commands.ElevationAxisPower(on=False),
                     commands.CameraCableWrapPower(on=False),
+                    commands.AskForCommand(commander=2),
                 ]
                 await self.send_commands(*disable_commands)
                 self.enabled_state = enums.EnabledState.DISABLED
@@ -702,11 +704,11 @@ class MTMountCsc(salobj.ConfigurableCsc):
     async def do_disableCameraCableWrapTracking(self, data):
         self.assert_enabled()
         self.camera_cable_wrap_task.cancel()
-        await self.send_command(commands.CameraCableWrapEnableTracking(on=False))
+        # await self.send_command(commands.CameraCableWrapEnableTracking(on=False))
 
     async def do_enableCameraCableWrapTracking(self, data):
         self.assert_enabled()
-        await self.send_command(commands.CameraCableWrapEnableTracking(on=True))
+        # await self.send_command(commands.CameraCableWrapEnableTracking(on=True))
         if self.camera_cable_wrap_task.done():
             self.camera_cable_wrap_task = asyncio.create_task(
                 self.camera_cable_wrap_loop()
