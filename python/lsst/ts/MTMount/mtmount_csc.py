@@ -149,7 +149,7 @@ class MTMountCsc(salobj.ConfigurableCsc):
         # TODO: Make these configuration parameters (DM-25941).
         self.ccw_rot_sync_limit_goto = 7.5
         self.ccw_rot_sync_limit_max = 2.0
-        self.ccw_rot_sync_limit_slew = 0.25
+        self.ccw_rot_sync_limit_slew = 1.0
         self.ccw_rot_sync_limit_track = 0.125
 
         # Is CCW in catchup mode? This is True if CCW is enabled and the
@@ -236,7 +236,7 @@ class MTMountCsc(salobj.ConfigurableCsc):
 
         self.prev_rot_application = rot_data
 
-        ccw_angle = ccw_data.CCW_Camera_Position
+        ccw_angle = ccw_data.CCW_Angle_1
 
         # distance between ccw and rotator position
         distance_ccw_rot = ccw_angle - rot_data.Position
@@ -247,29 +247,20 @@ class MTMountCsc(salobj.ConfigurableCsc):
         # distance between rotator position and demand
         distance_rot_demand = rot_data.Position - rot_data.Demand
 
-        if (
-            not self.catch_up_mode
-            and abs(distance_ccw_rot) < self.ccw_rot_sync_limit_slew
-        ) or (
-            abs(distance_ccw_rot_demand) < self.ccw_rot_sync_limit_goto
-            and abs(distance_ccw_rot) < self.ccw_rot_sync_limit_max / 2.0
-        ):
+        # catch up mode activates if ccw is ahead of Rotator by more than the
+        # specified limit.
+        self.catch_up_mode = (
+            abs(distance_ccw_rot) > self.ccw_rot_sync_limit_slew
+        ) and (abs(distance_ccw_rot_demand) < abs(distance_rot_demand))
+
+        if not self.catch_up_mode:
             # CCW and Rotator synchronized or in the goto limit and CCW-Rotator
             # Close enough. Follow demand.
             self.catch_up_mode = False
             demand_position = rot_data.Demand
             demand_velocity = 0.0
         else:
-            if not self.catch_up_mode:
-                self.catch_up_mode = True
-                self.log.info("Rotator and CCW out of sync. Going into catchup mode.")
-            else:
-                # Switch off catch_up_mode only when ccw-rot in the "track"
-                # limit.
-                self.catch_up_mode = (
-                    abs(distance_ccw_rot) > self.ccw_rot_sync_limit_track
-                )
-
+            self.log.info("Rotator and CCW out of sync. Going into catchup mode.")
             # If CCW ahead of Rotator, set velocity to zero, otherwise, use
             # Rotator velocity.
             demand_velocity = (
@@ -543,6 +534,9 @@ class MTMountCsc(salobj.ConfigurableCsc):
     async def camera_cable_wrap_loop(self):
         self.log.info("Camera cable wrap control begins")
         try:
+
+            move_task = salobj.make_done_future()
+
             while True:
                 (
                     demand_position,
@@ -550,13 +544,21 @@ class MTMountCsc(salobj.ConfigurableCsc):
                     demand_tai,
                 ) = await self.get_ccw_demand()
 
+                # catch up mode means CCW is ahead of Rotator by more than a
+                # safe margin. In this case, stop and wait.
+                if self.catch_up_mode and not move_task.done():
+                    await self.send_command(commands.CameraCableWrapStop())
+                    await move_task
+                elif self.catch_up_mode:
+                    continue
+
                 # Move at maximum velocity, acceleration and jerk
                 command = commands.CameraCableWrapMove(
                     position=demand_position, velocity=3.5, acceleration=1.0, jerk=7.0,
                 )
 
-                # This will block until complete
-                await self.send_command(command)
+                # Start move command in the background
+                move_task = asyncio.create_task(self.send_command(command))
 
         except asyncio.CancelledError:
             self.log.info("Camera cable wrap control ends")
