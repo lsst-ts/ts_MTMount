@@ -63,6 +63,7 @@ class AxisDevice(BaseDevice):
         # Has a target position been specified?
         # Set True when tracking or moving point to point and False otherwise.
         self.has_target = False
+        self.async_move = device_id != enums.DeviceId.CAMERA_CABLE_WRAP
         self.actuator = simactuators.TrackingActuator(
             min_position=device_limits.min_position,
             max_position=device_limits.max_position,
@@ -71,6 +72,7 @@ class AxisDevice(BaseDevice):
             dtmax_track=0.2,
         )
         self._monitor_move_task = asyncio.Future()
+        self._monitor_move_task.set_result(None)
         super().__init__(controller=controller, device_id=device_id)
 
     @property
@@ -253,7 +255,12 @@ class AxisDevice(BaseDevice):
         """
         self.assert_enabled()
         self.assert_tracking_enabled(False)
-        self.supersede_move_command()
+
+        if self.async_move:
+            self.supersede_move_command()
+        elif not self._monitor_move_task.done():
+            raise RuntimeError("Device busy executing move.")
+
         tai = salobj.current_tai()
         self.actuator.set_target(tai=tai, position=position, velocity=0)
         self.has_target = True

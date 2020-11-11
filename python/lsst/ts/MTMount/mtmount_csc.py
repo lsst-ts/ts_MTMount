@@ -368,14 +368,14 @@ class MTMountCsc(salobj.ConfigurableCsc):
                 # commands.MirrorCoversResetAlarm(),
                 # commands.AzimuthAxisResetAlarm(),
                 # commands.ElevationAxisResetAlarm(),
-                commands.CameraCableWrapResetAlarm(),
+                # commands.CameraCableWrapResetAlarm(),
                 # commands.TopEndChillerPower(on=True),
                 # commands.TopEndChillerTrackAmbient(on=True, temperature=0),
                 # commands.MainPowerSupplyPower(on=True),
                 # commands.OilSupplySystemPower(on=True),
                 # commands.AzimuthAxisPower(on=True),
                 # commands.ElevationAxisPower(on=True),
-                commands.CameraCableWrapPower(on=True),
+                # commands.CameraCableWrapPower(on=True),
                 # commands.CameraCableWrapEnableTracking(on=True),
             ]
             await self.send_commands(*enable_commands)
@@ -387,10 +387,10 @@ class MTMountCsc(salobj.ConfigurableCsc):
             self.fault(
                 code=enums.CscErrorCode.ACTUATOR_ENABLE_ERROR, report=f"{err_msg}: {e}",
             )
-        if self.camera_cable_wrap_task.done():
-            self.camera_cable_wrap_task = asyncio.create_task(
-                self.camera_cable_wrap_loop()
-            )
+        # if self.camera_cable_wrap_task.done():
+        #     self.camera_cable_wrap_task = asyncio.create_task(
+        #         self.camera_cable_wrap_loop()
+        #     )
 
     async def disable_devices(self):
         self.log.info("Disable devices")
@@ -408,10 +408,10 @@ class MTMountCsc(salobj.ConfigurableCsc):
             try:
                 disable_commands = [
                     # commands.BothAxesStop(),
-                    commands.CameraCableWrapStop(),
+                    # commands.CameraCableWrapStop(),
                     # commands.AzimuthAxisPower(on=False),
                     # commands.ElevationAxisPower(on=False),
-                    commands.CameraCableWrapPower(on=False),
+                    # commands.CameraCableWrapPower(on=False),
                     commands.AskForCommand(commander=2),
                 ]
                 await self.send_commands(*disable_commands)
@@ -550,9 +550,12 @@ class MTMountCsc(salobj.ConfigurableCsc):
                     demand_tai,
                 ) = await self.get_ccw_demand()
 
-                command = commands.CameraCableWrapTrack(
-                    position=demand_position, velocity=demand_velocity, tai=demand_tai,
+                # Move at maximum velocity, acceleration and jerk
+                command = commands.CameraCableWrapMove(
+                    position=demand_position, velocity=3.5, acceleration=1.0, jerk=7.0,
                 )
+
+                # This will block until complete
                 await self.send_command(command)
 
         except asyncio.CancelledError:
