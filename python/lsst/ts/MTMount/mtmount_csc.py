@@ -149,7 +149,7 @@ class MTMountCsc(salobj.ConfigurableCsc):
         # TODO: Make these configuration parameters (DM-25941).
         self.ccw_rot_sync_limit_goto = 7.5
         self.ccw_rot_sync_limit_max = 2.0
-        self.ccw_rot_sync_limit_slew = 1.0
+        self.ccw_rot_sync_limit_slew = 0.25
         self.ccw_rot_sync_limit_track = 0.125
 
         # Is CCW in catchup mode? This is True if CCW is enabled and the
